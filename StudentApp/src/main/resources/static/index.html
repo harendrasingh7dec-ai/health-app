@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Student Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--card:#1e2235;
+    --border:rgba(255,255,255,0.08);--text:#e8eaf0;--muted:#7a7f99;--hint:#4a4f6a;
+    --blue:#4f8ef7;--green:#4caf7d;--amber:#f5a623;--red:#e05c5c;
+    --purple:#9b7ef8;--teal:#3ecfb2;--coral:#f07060;--sidebar-w:220px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+  #sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto}
+  .brand{padding:0 20px 20px;border-bottom:1px solid var(--border)}
+  .brand h2{font-size:15px;font-weight:600;color:var(--blue)}
+  .brand p{font-size:11px;color:var(--muted);margin-top:2px}
+  .nav-section{font-size:10px;color:var(--hint);font-weight:600;letter-spacing:.1em;padding:14px 20px 4px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;margin:1px 8px}
+  .nav-item:hover{background:var(--bg3);color:var(--text)}
+  .nav-item.active{background:rgba(79,142,247,0.15);color:var(--blue);font-weight:500}
+  #main{margin-left:var(--sidebar-w);flex:1;padding:28px 32px;max-width:1200px}
+  .page{display:none}.page.active{display:block}
+  .page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+  .page-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .mc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .mc-lbl{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+  .mc-val{font-size:24px;font-weight:600;line-height:1}
+  .mc-sub{font-size:11px;color:var(--muted);margin-top:3px}
+  .c-blue{color:var(--blue)}.c-green{color:var(--green)}.c-amber{color:var(--amber)}
+  .c-red{color:var(--red)}.c-purple{color:var(--purple)}.c-teal{color:var(--teal)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .ct{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.g2{grid-template-columns:1fr}#main{padding:14px;margin-left:0}#sidebar{display:none}}
+  .pr{margin-bottom:11px}
+  .ph{display:flex;justify-content:space-between;margin-bottom:4px}
+  .pl{font-size:13px;font-weight:500}
+  .pp{font-size:12px;color:var(--muted)}
+  .bbg{height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+  .bf{height:100%;border-radius:4px;transition:width .7s ease}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 8px 8px 0;border-bottom:1px solid var(--border)}
+  .tbl td{padding:9px 8px 9px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+  .tbl tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+  .ba{background:rgba(76,175,125,0.15);color:var(--green)}
+  .bb{background:rgba(79,142,247,0.15);color:var(--blue)}
+  .bc{background:rgba(245,166,35,0.15);color:var(--amber)}
+  .bf2{background:rgba(224,92,92,0.15);color:var(--red)}
+  .todo-item{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .todo-item:last-child{border-bottom:none}
+  .todo-cb{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+  .todo-txt{flex:1;font-size:13px}
+  .todo-txt.done{text-decoration:line-through;color:var(--hint)}
+  .todo-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(79,142,247,0.12);color:var(--blue);flex-shrink:0}
+  .todo-pri{font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0}
+  .pH{background:rgba(224,92,92,0.15);color:var(--red)}
+  .pM{background:rgba(245,166,35,0.15);color:var(--amber)}
+  .pL{background:rgba(76,175,125,0.15);color:var(--green)}
+  .ar{display:flex;gap:8px;margin-top:10px}
+  .ar input,.ar select{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:7px 10px}
+  .ar input{flex:1}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn:hover{opacity:.85}
+  .btn-sm{padding:5px 12px;font-size:12px}
+  .sch-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .sch-row:last-child{border-bottom:none}
+  .sch-time{font-size:12px;color:var(--muted);min-width:62px}
+  .sch-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .sch-name{flex:1;font-size:13px;font-weight:500}
+  .sch-meta{font-size:11px;color:var(--hint)}
+  .gr-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gr-m{font-size:12px;color:var(--muted);min-width:34px}
+  .gr-bg{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden}
+  .gr-f{height:100%;border-radius:4px;background:var(--blue)}
+  .gr-v{font-size:12px;color:var(--muted);min-width:36px;text-align:right}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal-hdr{font-size:10px;color:var(--hint);text-align:center;padding-bottom:4px;font-weight:600}
+  .cal-day{height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+  .dp{background:rgba(76,175,125,0.18);color:var(--green)}
+  .da{background:rgba(224,92,92,0.15);color:var(--red)}
+  .do{background:var(--bg3);color:var(--hint)}
+  .rings-wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+  .ring-item{text-align:center}
+  .ring-wrap-r{position:relative;width:78px;height:78px}
+  .ring-wrap-r svg{width:78px;height:78px}
+  .ring-ctr{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:600}
+  .ring-lbl{font-size:11px;color:var(--muted);margin-top:3px}
+  .vital-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .vc{background:var(--bg3);border-radius:10px;padding:11px 12px;text-align:center}
+  .vc-val{font-size:19px;font-weight:600}
+  .vc-unit{font-size:10px;color:var(--muted)}
+  .vc-name{font-size:11px;color:var(--muted);margin-top:2px}
+  .status-bar{height:5px;border-radius:3px;margin-top:7px;background:var(--bg3);overflow:hidden}
+  .status-fill{height:100%;border-radius:3px}
+  .bmi-bar{height:13px;border-radius:7px;background:linear-gradient(to right,var(--blue) 0%,var(--green) 30%,var(--amber) 60%,var(--red) 100%);margin:10px 0;position:relative}
+  .bmi-marker{position:absolute;top:-4px;width:5px;height:21px;background:#fff;border-radius:3px;transform:translateX(-50%);box-shadow:0 0 6px rgba(0,0,0,.6)}
+  .meal-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+  .meal-row:last-child{border-bottom:none}
+  .meal-type{font-size:11px;font-weight:600;min-width:72px;padding:3px 8px;border-radius:10px;text-align:center}
+  .mBF{background:rgba(245,166,35,0.15);color:var(--amber)}
+  .mL{background:rgba(76,175,125,0.15);color:var(--green)}
+  .mD{background:rgba(79,142,247,0.15);color:var(--blue)}
+  .mS{background:rgba(155,126,248,0.15);color:var(--purple)}
+  .meal-name{flex:1;font-size:13px}
+  .meal-cal{font-size:12px;color:var(--muted)}
+  .finput{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:7px 10px;width:100%}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--hint);border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="brand"><h2>📚 StudentHub</h2><p>Arjun Sharma · CS2023001</p></div>
+  <div class="nav-section">Academic</div>
+  <div class="nav-item active" onclick="gp('dashboard',this)">⚡ Dashboard</div>
+  <div class="nav-item" onclick="gp('marks',this)">📝 Marks &amp; Grades</div>
+  <div class="nav-item" onclick="gp('attendance',this)">📅 Attendance</div>
+  <div class="nav-item" onclick="gp('todo',this)">✅ To-Do List</div>
+  <div class="nav-item" onclick="gp('schedule',this)">🕐 Schedule</div>
+  <div class="nav-item" onclick="gp('growth',this)">📈 Academic Growth</div>
+  <div class="nav-section">Health &amp; Fitness</div>
+  <div class="nav-item" onclick="gp('health',this)">❤️ Health Status</div>
+  <div class="nav-item" onclick="gp('gym',this)">💪 Gym Tracker</div>
+  <div class="nav-item" onclick="gp('nutrition',this)">🥗 Nutrition Log</div>
+</nav>
+
+<main id="main">
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="page-title">Good morning, Arjun! 👋</div>
+  <div class="page-sub">Your complete academic &amp; health overview.</div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-lbl">Overall %</div><div class="mc-val c-blue">78.4%</div><div class="mc-sub">This semester</div></div>
+    <div class="mc"><div class="mc-lbl">Attendance</div><div class="mc-val c-green">82%</div><div class="mc-sub">Classes attended</div></div>
+    <div class="mc"><div class="mc-lbl">CGPA</div><div class="mc-val c-purple">8.2</div><div class="mc-sub">Out of 10.0</div></div>
+    <div class="mc"><div class="mc-lbl">To-Do Done</div><div class="mc-val c-amber" id="db-todo">2/5</div><div class="mc-sub">Tasks complete</div></div>
+    <div class="mc"><div class="mc-lbl">BMI</div><div class="mc-val c-teal">22.9</div><div class="mc-sub">Normal range</div></div>
+    <div class="mc"><div class="mc-lbl">Workout Streak</div><div class="mc-val c-red">6 🔥</div><div class="mc-sub">Days this week</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Subject Performance</div>
+      <div class="pr"><div class="ph"><span class="pl">Mathematics</span><span class="pp">88%</span></div><div class="bbg"><div class="bf" style="width:88%;background:var(--green)"></div></div></div>
+      <div class="pr"><div class="ph"><span class="pl">Physics</span><span class="pp">74%</span></div><div class="bbg"><div class="bf" style="width:74%;background:var(--blue)"></div></div></div>
+      <div class="pr"><div class="ph"><span class="pl">Computer Science</span><span class="pp">92%</span></div><div class="bbg"><div class="bf" style="width:92%;background:var(--purple)"></div></div></div>
+      <div class="pr"><div class="ph"><span class="pl">Chemistry</span><span class="pp">81%</span></div><div class="bbg"><div class="bf" style="width:81%;background:var(--teal)"></div></div></div>
+      <div class="pr"><div class="ph"><span class="pl">English</span><span class="pp">67%</span></div><div class="bbg"><div class="bf" style="width:67%;background:var(--amber)"></div></div></div>
+      <div class="pr"><div class="ph"><span class="pl">Economics</span><span class="pp">58%</span></div><div class="bbg"><div class="bf" style="width:58%;background:var(--red)"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Today's Vitals</div>
+      <div class="vital-grid">
+        <div class="vc"><div style="font-size:18px">❤️</div><div class="vc-val c-red">70</div><div class="vc-unit">bpm</div><div class="vc-name">Heart Rate</div><div class="status-bar"><div class="status-fill" style="width:60%;background:var(--green)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">🩺</div><div class="vc-val c-blue" style="font-size:13px;font-weight:600">118/78</div><div class="vc-unit">mmHg</div><div class="vc-name">Blood Pressure</div></div>
+        <div class="vc"><div style="font-size:18px">😴</div><div class="vc-val c-purple">7.5</div><div class="vc-unit">hrs</div><div class="vc-name">Sleep</div><div class="status-bar"><div class="status-fill" style="width:80%;background:var(--purple)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">💧</div><div class="vc-val c-teal">2.5L</div><div class="vc-unit">water</div><div class="vc-name">Hydration</div><div class="status-bar"><div class="status-fill" style="width:83%;background:var(--teal)"></div></div></div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="pr"><div class="ph"><span class="pl" style="font-size:12px">Calorie Goal</span><span class="pp">1560/2200 kcal</span></div><div class="bbg"><div class="bf" style="width:71%;background:var(--amber)"></div></div></div>
+        <div class="pr"><div class="ph"><span class="pl" style="font-size:12px">Gym Streak</span><span class="pp">6/7 days</span></div><div class="bbg"><div class="bf" style="width:86%;background:var(--green)"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Today's Classes</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <div style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.25);border-radius:10px;padding:10px 14px;min-width:130px"><div style="font-size:11px;color:var(--blue)">08:00–09:30</div><div style="font-size:13px;font-weight:600;margin-top:3px">Mathematics</div><div style="font-size:11px;color:var(--muted)">Room 204</div></div>
+      <div style="background:rgba(76,175,125,0.1);border:1px solid rgba(76,175,125,0.25);border-radius:10px;padding:10px 14px;min-width:130px"><div style="font-size:11px;color:var(--green)">09:30–11:00</div><div style="font-size:13px;font-weight:600;margin-top:3px">Physics</div><div style="font-size:11px;color:var(--muted)">Lab B1</div></div>
+      <div style="background:rgba(155,126,248,0.1);border:1px solid rgba(155,126,248,0.25);border-radius:10px;padding:10px 14px;min-width:130px"><div style="font-size:11px;color:var(--purple)">11:30–13:00</div><div style="font-size:13px;font-weight:600;margin-top:3px">Computer Science</div><div style="font-size:11px;color:var(--muted)">CS Lab 1</div></div>
+      <div style="background:rgba(62,207,178,0.1);border:1px solid rgba(62,207,178,0.25);border-radius:10px;padding:10px 14px;min-width:130px"><div style="font-size:11px;color:var(--teal)">14:00–15:00</div><div style="font-size:13px;font-weight:600;margin-top:3px">Gym Session</div><div style="font-size:11px;color:var(--muted)">Full Body Day</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKS -->
+<div id="page-marks" class="page">
+  <div class="page-title">Marks &amp; Grades</div>
+  <div class="page-sub">Semester 4 — B.Tech Computer Science</div>
+  <div class="card">
+    <div class="ct">Subject-wise Performance</div>
+    <div class="pr"><div class="ph"><span class="pl">Mathematics</span><span class="pp">88/100</span></div><div class="bbg"><div class="bf" style="width:88%;background:var(--green)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Physics</span><span class="pp">74/100</span></div><div class="bbg"><div class="bf" style="width:74%;background:var(--blue)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Chemistry</span><span class="pp">81/100</span></div><div class="bbg"><div class="bf" style="width:81%;background:var(--teal)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Computer Science</span><span class="pp">92/100</span></div><div class="bbg"><div class="bf" style="width:92%;background:var(--purple)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">English</span><span class="pp">67/100</span></div><div class="bbg"><div class="bf" style="width:67%;background:var(--amber)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Economics</span><span class="pp">58/100</span></div><div class="bbg"><div class="bf" style="width:58%;background:var(--red)"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">Detailed Exam Results</div>
+    <table class="tbl">
+      <thead><tr><th>Subject</th><th>Midterm</th><th>Final</th><th>Practical</th><th>Total</th><th>Grade</th></tr></thead>
+      <tbody>
+        <tr><td>Mathematics</td><td>42/50</td><td>36/40</td><td>10/10</td><td><strong>88/100</strong></td><td><span class="badge ba">A</span></td></tr>
+        <tr><td>Physics</td><td>35/50</td><td>29/40</td><td>10/10</td><td><strong>74/100</strong></td><td><span class="badge bb">B+</span></td></tr>
+        <tr><td>Chemistry</td><td>38/50</td><td>33/40</td><td>10/10</td><td><strong>81/100</strong></td><td><span class="badge ba">A-</span></td></tr>
+        <tr><td>Computer Science</td><td>44/50</td><td>38/40</td><td>10/10</td><td><strong>92/100</strong></td><td><span class="badge ba">A+</span></td></tr>
+        <tr><td>English</td><td>32/50</td><td>25/40</td><td>10/10</td><td><strong>67/100</strong></td><td><span class="badge bb">B</span></td></tr>
+        <tr><td>Economics</td><td>28/50</td><td>22/40</td><td>8/10</td><td><strong>58/100</strong></td><td><span class="badge bc">C+</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="ct">CGPA per Subject</div>
+    <div class="rings-wrap" id="cgpa-rings"></div>
+  </div>
+</div>
+
+<!-- ATTENDANCE -->
+<div id="page-attendance" class="page">
+  <div class="page-title">Attendance Tracker</div>
+  <div class="page-sub">March 2026 — Overall: 82%</div>
+  <div class="card">
+    <div class="ct">Subject Attendance</div>
+    <div class="pr"><div class="ph"><span class="pl">Mathematics</span><span class="pp">24/28 — 86%</span></div><div class="bbg"><div class="bf" style="width:86%;background:var(--green)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Physics</span><span class="pp">20/28 — 71%</span></div><div class="bbg"><div class="bf" style="width:71%;background:var(--amber)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Chemistry</span><span class="pp">25/28 — 89%</span></div><div class="bbg"><div class="bf" style="width:89%;background:var(--green)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Computer Science</span><span class="pp">27/28 — 96%</span></div><div class="bbg"><div class="bf" style="width:96%;background:var(--teal)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">English</span><span class="pp">19/28 — 68%</span></div><div class="bbg"><div class="bf" style="width:68%;background:var(--red)"></div></div></div>
+    <div class="pr"><div class="ph"><span class="pl">Economics</span><span class="pp">22/28 — 79%</span></div><div class="bbg"><div class="bf" style="width:79%;background:var(--blue)"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">March 2026 Calendar</div>
+    <div class="cal-grid" style="margin-bottom:7px">
+      <div class="cal-hdr">M</div><div class="cal-hdr">T</div><div class="cal-hdr">W</div><div class="cal-hdr">T</div><div class="cal-hdr">F</div><div class="cal-hdr">S</div><div class="cal-hdr">S</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(76,175,125,0.3);margin-right:4px"></span>Present</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(224,92,92,0.2);margin-right:4px"></span>Absent</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--bg3);margin-right:4px"></span>Holiday</span>
+    </div>
+  </div>
+</div>
+
+<!-- TODO -->
+<div id="page-todo" class="page">
+  <div class="page-title">To-Do List</div>
+  <div class="page-sub">Track your assignments, tasks, and goals.</div>
+  <div class="card">
+    <div class="ct">Tasks — <span id="todo-count" style="font-weight:400;color:var(--muted)">2 done / 5 total</span></div>
+    <ul style="list-style:none" id="todo-list">
+      <li class="todo-item"><input type="checkbox" class="todo-cb" onchange="updateTodos()"><span class="todo-txt">Complete Physics assignment Ch.5</span><span class="todo-tag">Physics</span><span class="todo-pri pH">HIGH</span></li>
+      <li class="todo-item"><input type="checkbox" class="todo-cb" onchange="updateTodos()"><span class="todo-txt">Revise integration formulas</span><span class="todo-tag">Maths</span><span class="todo-pri pM">MED</span></li>
+      <li class="todo-item"><input type="checkbox" class="todo-cb" onchange="updateTodos()"><span class="todo-txt">Submit Economics project</span><span class="todo-tag">Eco</span><span class="todo-pri pH">HIGH</span></li>
+      <li class="todo-item"><input type="checkbox" class="todo-cb" checked onchange="updateTodos()"><span class="todo-txt done">Read Chapter 8 Organic Chemistry</span><span class="todo-tag">Chem</span><span class="todo-pri pM">MED</span></li>
+      <li class="todo-item"><input type="checkbox" class="todo-cb" checked onchange="updateTodos()"><span class="todo-txt done">Practice coding problems (arrays)</span><span class="todo-tag">CS</span><span class="todo-pri pL">LOW</span></li>
+    </ul>
+    <div class="ar">
+      <input type="text" id="task-inp" placeholder="New task...">
+      <select id="task-sub"><option>General</option><option>Maths</option><option>Physics</option><option>Chemistry</option><option>CS</option><option>English</option><option>Economics</option><option>Gym</option></select>
+      <select id="task-pri"><option value="H">High</option><option value="M">Medium</option><option value="L">Low</option></select>
+      <button class="btn btn-sm" onclick="addTask()">+ Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div id="page-schedule" class="page">
+  <div class="page-title">Class Schedule</div>
+  <div class="page-sub">Semester 4 timetable</div>
+  <div class="card">
+    <div class="ct">Today's Classes (Monday)</div>
+    <div class="sch-row"><span class="sch-time">08:00–09:30</span><span class="sch-dot" style="background:var(--blue)"></span><span class="sch-name">Mathematics</span><span class="sch-meta">Room 204 · Dr. Gupta</span></div>
+    <div class="sch-row"><span class="sch-time">09:30–11:00</span><span class="sch-dot" style="background:var(--green)"></span><span class="sch-name">Physics</span><span class="sch-meta">Lab B1 · Dr. Mehta</span></div>
+    <div class="sch-row"><span class="sch-time">11:30–13:00</span><span class="sch-dot" style="background:var(--purple)"></span><span class="sch-name">Computer Science</span><span class="sch-meta">CS Lab 1 · Prof. Kumar</span></div>
+    <div class="sch-row"><span class="sch-time">14:00–15:00</span><span class="sch-dot" style="background:var(--teal)"></span><span class="sch-name">Gym Session</span><span class="sch-meta">College Gym · Full Body</span></div>
+  </div>
+  <div class="card">
+    <div class="ct">Weekly Timetable</div>
+    <table class="tbl">
+      <thead><tr><th>Day</th><th>Morning</th><th>Afternoon</th><th>Evening</th></tr></thead>
+      <tbody>
+        <tr><td>Monday</td><td>Maths, Physics</td><td>CS Lab</td><td>Gym</td></tr>
+        <tr><td>Tuesday</td><td>Chemistry, English</td><td>Economics</td><td>Rest</td></tr>
+        <tr><td>Wednesday</td><td>Maths, Economics</td><td>Physics Lab</td><td>Gym</td></tr>
+        <tr><td>Thursday</td><td>CS, Chemistry</td><td>Maths</td><td>Cardio</td></tr>
+        <tr><td>Friday</td><td>Physics, English</td><td>Economics, CS</td><td>Gym</td></tr>
+        <tr><td>Saturday</td><td colspan="2">—</td><td>Gym / Sport</td></tr>
+        <tr><td>Sunday</td><td colspan="2">—</td><td>Rest Day</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GROWTH -->
+<div id="page-growth" class="page">
+  <div class="page-title">Academic Growth</div>
+  <div class="page-sub">Tracking your semester progress month by month.</div>
+  <div class="card"><div class="ct">Monthly Score Trend</div><div id="growth-bars"></div></div>
+  <div class="card"><div class="ct">CGPA Chart</div><div style="position:relative;height:220px"><canvas id="cgpa-chart"></canvas></div></div>
+</div>
+
+<!-- HEALTH -->
+<div id="page-health" class="page">
+  <div class="page-title">Health Status ❤️</div>
+  <div class="page-sub">Monitor your physical health and wellness every day.</div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-lbl">Weight</div><div class="mc-val c-blue">70 kg</div><div class="mc-sub">Goal: 75 kg</div></div>
+    <div class="mc"><div class="mc-lbl">BMI</div><div class="mc-val c-green">22.9</div><div class="mc-sub">Normal</div></div>
+    <div class="mc"><div class="mc-lbl">Blood Group</div><div class="mc-val c-red">B+</div><div class="mc-sub">Arjun Sharma</div></div>
+    <div class="mc"><div class="mc-lbl">Sleep Avg</div><div class="mc-val c-purple">7.2 hrs</div><div class="mc-sub">Last 7 days</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Today's Vitals</div>
+      <div class="vital-grid">
+        <div class="vc"><div style="font-size:18px">❤️</div><div class="vc-val c-red">70</div><div class="vc-unit">bpm</div><div class="vc-name">Heart Rate</div><div class="status-bar"><div class="status-fill" style="width:60%;background:var(--green)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">🩺</div><div class="vc-val c-blue" style="font-size:13px">118/78</div><div class="vc-unit">mmHg</div><div class="vc-name">Blood Pressure</div></div>
+        <div class="vc"><div style="font-size:18px">😴</div><div class="vc-val c-purple">7.5</div><div class="vc-unit">hours</div><div class="vc-name">Sleep</div><div class="status-bar"><div class="status-fill" style="width:80%;background:var(--purple)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">💧</div><div class="vc-val c-teal">2.5</div><div class="vc-unit">litres</div><div class="vc-name">Water</div><div class="status-bar"><div class="status-fill" style="width:83%;background:var(--teal)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">🔥</div><div class="vc-val c-amber">5</div><div class="vc-unit">/10</div><div class="vc-name">Stress Level</div><div class="status-bar"><div class="status-fill" style="width:50%;background:var(--amber)"></div></div></div>
+        <div class="vc"><div style="font-size:18px">😊</div><div class="vc-val c-green" style="font-size:14px">GOOD</div><div class="vc-unit">&nbsp;</div><div class="vc-name">Mood Today</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">BMI Scale</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Your BMI: <strong style="color:var(--text)">22.9</strong> — Normal weight ✓</div>
+      <div class="bmi-bar"><div class="bmi-marker" style="left:43%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--hint);margin-top:4px"><span>16</span><span>18.5</span><span>25</span><span>30</span><span>40+</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--hint)"><span>Under</span><span style="margin-left:10px">Normal</span><span>Over</span><span>Obese</span><span></span></div>
+      <div style="margin-top:18px"><div class="ct">7-Day Weight Trend</div><div style="position:relative;height:120px"><canvas id="weight-chart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Log Today's Health</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      <div><label style="font-size:11px;color:var(--muted)">Weight (kg)</label><br><input type="number" placeholder="70" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Sleep (hrs)</label><br><input type="number" placeholder="7.5" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Water (L)</label><br><input type="number" placeholder="2.5" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Stress (1–10)</label><br><input type="number" min="1" max="10" placeholder="5" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Heart Rate</label><br><input type="number" placeholder="68" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Mood</label><br><select class="finput" style="margin-top:4px"><option>GREAT</option><option selected>GOOD</option><option>OKAY</option><option>BAD</option><option>TERRIBLE</option></select></div>
+    </div>
+    <button class="btn" style="margin-top:14px" onclick="alert('Health record saved! (Connect to Java backend via POST /api/health/students/1/records)')">💾 Save Record</button>
+  </div>
+</div>
+
+<!-- GYM -->
+<div id="page-gym" class="page">
+  <div class="page-title">Gym Tracker 💪</div>
+  <div class="page-sub">Log workouts, track sets, calories, and streaks.</div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-lbl">Sessions (week)</div><div class="mc-val c-purple">6</div><div class="mc-sub">Mon–Sun</div></div>
+    <div class="mc"><div class="mc-lbl">Calories Burned</div><div class="mc-val c-red">2430</div><div class="mc-sub">This week</div></div>
+    <div class="mc"><div class="mc-lbl">Total Time</div><div class="mc-val c-blue">335 min</div><div class="mc-sub">~5.6 hrs</div></div>
+    <div class="mc"><div class="mc-lbl">Streak</div><div class="mc-val c-amber">6 days 🔥</div><div class="mc-sub">Keep it up!</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">This Week's Workouts</div>
+      <table class="tbl">
+        <thead><tr><th>Day</th><th>Type</th><th>Duration</th><th>Calories</th><th>Level</th></tr></thead>
+        <tbody>
+          <tr><td>Mon</td><td>Chest</td><td>60 min</td><td>420</td><td><span class="badge ba">HIGH</span></td></tr>
+          <tr><td>Tue</td><td>Back</td><td>55 min</td><td>380</td><td><span class="badge ba">HIGH</span></td></tr>
+          <tr><td>Wed</td><td>REST</td><td>—</td><td>—</td><td><span class="badge bc">REST</span></td></tr>
+          <tr><td>Thu</td><td>Legs</td><td>65 min</td><td>480</td><td><span class="badge ba">HIGH</span></td></tr>
+          <tr><td>Fri</td><td>Arms</td><td>45 min</td><td>300</td><td><span class="badge bb">MED</span></td></tr>
+          <tr><td>Sat</td><td>Cardio</td><td>40 min</td><td>350</td><td><span class="badge bb">MED</span></td></tr>
+          <tr><td>Sun</td><td>Full Body</td><td>70 min</td><td>500</td><td><span class="badge ba">HIGH</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ct">Workout Split</div>
+      <div style="position:relative;height:190px"><canvas id="gym-chart"></canvas></div>
+      <div style="margin-top:14px"><div class="ct">Calories per Day</div><div style="position:relative;height:120px"><canvas id="cal-chart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Log New Workout</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      <div><label style="font-size:11px;color:var(--muted)">Workout Type</label><br><select class="finput" style="margin-top:4px"><option>CHEST</option><option>BACK</option><option>LEGS</option><option>ARMS</option><option>SHOULDERS</option><option>CARDIO</option><option>FULL_BODY</option><option>REST</option></select></div>
+      <div><label style="font-size:11px;color:var(--muted)">Duration (min)</label><br><input type="number" placeholder="60" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Calories Burned</label><br><input type="number" placeholder="400" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Sets Completed</label><br><input type="number" placeholder="15" class="finput" style="margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--muted)">Intensity</label><br><select class="finput" style="margin-top:4px"><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+      <div><label style="font-size:11px;color:var(--muted)">Notes</label><br><input type="text" placeholder="e.g. New PR!" class="finput" style="margin-top:4px"></div>
+    </div>
+    <button class="btn" style="margin-top:14px" onclick="alert('Workout logged! (Connect to Java backend via POST /api/health/students/1/workouts)')">🏋️ Log Workout</button>
+  </div>
+</div>
+
+<!-- NUTRITION -->
+<div id="page-nutrition" class="page">
+  <div class="page-title">Nutrition Log 🥗</div>
+  <div class="page-sub">Track your meals, calories, and macros every day.</div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-lbl">Calories Today</div><div class="mc-val c-amber">1560</div><div class="mc-sub">Goal: 2200 kcal</div></div>
+    <div class="mc"><div class="mc-lbl">Protein</div><div class="mc-val c-blue">89g</div><div class="mc-sub">Goal: 140g</div></div>
+    <div class="mc"><div class="mc-lbl">Carbs</div><div class="mc-val c-green">210g</div><div class="mc-sub">Goal: 280g</div></div>
+    <div class="mc"><div class="mc-lbl">Fats</div><div class="mc-val c-red">31g</div><div class="mc-sub">Goal: 70g</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Today's Meals</div>
+      <div class="meal-row"><span class="meal-type mBF">Breakfast</span><span class="meal-name">Oats + Banana</span><span class="meal-cal">350 kcal</span></div>
+      <div class="meal-row"><span class="meal-type mL">Lunch</span><span class="meal-name">Dal Rice + Sabzi</span><span class="meal-cal">550 kcal</span></div>
+      <div class="meal-row"><span class="meal-type mS">Snack</span><span class="meal-name">Protein Shake</span><span class="meal-cal">180 kcal</span></div>
+      <div class="meal-row"><span class="meal-type mD">Dinner</span><span class="meal-name">Roti + Paneer Curry</span><span class="meal-cal">480 kcal</span></div>
+      <div class="ar" style="margin-top:12px">
+        <input type="text" placeholder="Food item...">
+        <select><option>BREAKFAST</option><option>LUNCH</option><option>DINNER</option><option>SNACK</option></select>
+        <input type="number" placeholder="kcal" style="width:80px">
+        <button class="btn btn-sm" onclick="alert('Meal logged!')">+ Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Macro Breakdown</div>
+      <div style="position:relative;height:200px"><canvas id="macro-chart"></canvas></div>
+      <div style="margin-top:14px">
+        <div class="pr"><div class="ph"><span class="pl" style="font-size:12px">Calorie Goal</span><span class="pp">1560/2200</span></div><div class="bbg"><div class="bf" style="width:71%;background:var(--amber)"></div></div></div>
+        <div class="pr"><div class="ph"><span class="pl" style="font-size:12px">Protein Goal</span><span class="pp">89g/140g</span></div><div class="bbg"><div class="bf" style="width:64%;background:var(--blue)"></div></div></div>
+        <div class="pr"><div class="ph"><span class="pl" style="font-size:12px">Water Goal</span><span class="pp">2.5L/3L</span></div><div class="bbg"><div class="bf" style="width:83%;background:var(--teal)"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+<script>
+function gp(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='marks'&&!window._r)buildRings();
+  if(name==='growth'&&!window._g)buildGrowth();
+  if(name==='gym'&&!window._gym)buildGym();
+  if(name==='nutrition'&&!window._mac)buildMacro();
+  if(name==='health'&&!window._wt)buildWeight();
+}
+function updateTodos(){
+  const items=document.querySelectorAll('#todo-list .todo-item');
+  let done=0;
+  items.forEach(item=>{
+    const cb=item.querySelector('.todo-cb'),sp=item.querySelector('.todo-txt');
+    if(cb.checked){sp.classList.add('done');done++;}else sp.classList.remove('done');
+  });
+  document.getElementById('todo-count').textContent=done+' done / '+items.length+' total';
+  document.getElementById('db-todo').textContent=done+'/'+items.length;
+}
+function addTask(){
+  const inp=document.getElementById('task-inp'),sub=document.getElementById('task-sub').value,pri=document.getElementById('task-pri').value,val=inp.value.trim();
+  if(!val)return;
+  const labels={'H':'HIGH','M':'MED','L':'LOW'},classes={'H':'pH','M':'pM','L':'pL'};
+  const li=document.createElement('li');li.className='todo-item';
+  li.innerHTML=`<input type="checkbox" class="todo-cb" onchange="updateTodos()"><span class="todo-txt">${val}</span><span class="todo-tag">${sub}</span><span class="todo-pri ${classes[pri]}">${labels[pri]}</span>`;
+  document.getElementById('todo-list').appendChild(li);inp.value='';updateTodos();
+}
+document.getElementById('task-inp').addEventListener('keydown',e=>{if(e.key==='Enter')addTask();});
+// Calendar
+(function(){
+  const data=[null,null,null,null,1,0,0,1,1,1,1,1,0,0,1,1,0,1,1,0,0,1,1,1,0,1,0,0,1,1,1];
+  const g=document.getElementById('cal-grid');
+  for(let i=0;i<6;i++){const d=document.createElement('div');d.className='cal-day';g.appendChild(d);}
+  data.forEach((v,i)=>{const d=document.createElement('div');d.className='cal-day '+(v===null?'do':v===1?'dp':'da');d.textContent=i+1;g.appendChild(d);});
+})();
+function buildRings(){
+  window._r=true;
+  const subs=[{l:'Maths',v:88,c:'#4caf7d'},{l:'Physics',v:74,c:'#4f8ef7'},{l:'CS',v:92,c:'#9b7ef8'},{l:'Chem',v:81,c:'#3ecfb2'},{l:'English',v:67,c:'#f5a623'},{l:'Eco',v:58,c:'#e05c5c'}];
+  const wrap=document.getElementById('cgpa-rings');
+  subs.forEach(s=>{
+    const circ=2*Math.PI*30,dash=(circ*s.v/100).toFixed(1);
+    const div=document.createElement('div');div.className='ring-item';
+    div.innerHTML=`<div class="ring-wrap-r"><svg viewBox="0 0 78 78"><circle cx="39" cy="39" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/><circle cx="39" cy="39" r="30" fill="none" stroke="${s.c}" stroke-width="7" stroke-dasharray="${dash} ${circ.toFixed(1)}" stroke-linecap="round" transform="rotate(-90 39 39)"/></svg><div class="ring-ctr" style="color:${s.c}">${s.v}%</div></div><div class="ring-lbl">${s.l}</div>`;
+    wrap.appendChild(div);
+  });
+}
+function buildGrowth(){
+  window._g=true;
+  const months=['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'],scores=[62,65,68,71,70,74,77,79,78];
+  const wrap=document.getElementById('growth-bars');
+  months.forEach((m,i)=>{const div=document.createElement('div');div.className='gr-row';div.innerHTML=`<span class="gr-m">${m}</span><div class="gr-bg"><div class="gr-f" style="width:${scores[i]}%"></div></div><span class="gr-v">${scores[i]}%</span>`;wrap.appendChild(div);});
+  new Chart(document.getElementById('cgpa-chart'),{type:'line',data:{labels:months,datasets:[{label:'CGPA',data:[6.2,6.5,6.8,7.1,7.0,7.4,7.7,8.0,8.2],borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.1)',tension:0.4,pointRadius:4,pointBackgroundColor:'#4f8ef7',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:5,max:10,ticks:{color:'#7a7f99',stepSize:1},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#7a7f99'},grid:{display:false}}}}});
+}
+function buildGym(){
+  window._gym=true;
+  new Chart(document.getElementById('gym-chart'),{type:'doughnut',data:{labels:['Chest','Back','Legs','Arms','Cardio','Full Body'],datasets:[{data:[1,1,1,1,1,1],backgroundColor:['#4f8ef7','#4caf7d','#9b7ef8','#f5a623','#3ecfb2','#e05c5c'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a7f99',boxWidth:10,font:{size:11}}}}}});
+  new Chart(document.getElementById('cal-chart'),{type:'bar',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{data:[420,380,0,480,300,350,500],backgroundColor:'#9b7ef8',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#7a7f99'},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#7a7f99'},grid:{display:false}}}}});
+}
+function buildMacro(){
+  window._mac=true;
+  new Chart(document.getElementById('macro-chart'),{type:'doughnut',data:{labels:['Protein 89g','Carbs 210g','Fats 31g','Fiber 21g'],datasets:[{data:[356,840,279,84],backgroundColor:['#4f8ef7','#4caf7d','#e05c5c','#f5a623'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a7f99',boxWidth:10,font:{size:11}}}}}});
+}
+function buildWeight(){
+  window._wt=true;
+  new Chart(document.getElementById('weight-chart'),{type:'line',data:{labels:['D-6','D-5','D-4','D-3','D-2','D-1','Today'],datasets:[{data:[70.6,70.5,70.4,70.3,70.2,70.1,70.0],borderColor:'#3ecfb2',backgroundColor:'rgba(62,207,178,0.1)',tension:0.4,pointRadius:3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#7a7f99',callback:v=>v+'kg'},grid:{color:'rgba(255,255,255,0.05)'}},x:{ticks:{color:'#7a7f99'},grid:{display:false}}}}});
+}
+</script>
+</body>
+</html>
